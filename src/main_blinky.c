@@ -61,11 +61,11 @@ static void prvQueueSendTask(void *pvParameters) {
 
 static void prvQueueReceiveTask(void *pvParameters) {
   unsigned long ulReceivedValue;
-  const unsigned long ulExpectedValue = 100UL;
 
   (void)pvParameters;
 
   for (;;) {
+    const unsigned long ulExpectedValue = 100UL;
 
     xQueueReceive(xQueue, &ulReceivedValue, portMAX_DELAY);
 

@@ -53,7 +53,8 @@ int main(void) {
 
 static void prvSetupHardware(void) {
   stdio_init_all();
-  cyw43_arch_init();
+
+  cyw43_arch_init_with_country(CYW43_COUNTRY_INDIA);
 }
 
 void vApplicationMallocFailedHook(void) { configASSERT((volatile void *)NULL); }
