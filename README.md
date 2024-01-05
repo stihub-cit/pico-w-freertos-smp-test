@@ -1,15 +1,11 @@
-## Introduction
-
-These are the demo programs for the RP2040 port of the FreeRTOS-Kernel. Note that these
-same examples are used for both the regular and SMP versions of the RP2040 FreeRTOS-Kernel, although obviously the SMP specific examples are skipped in the former.
-
-To switch between SMP or regular FreeRTOS-Kernel, you can currently change the branch of the FreeRTOS-Kernel at `/Source` between `main` and `smp`, or you can use the `FREERTOS_KERNEL_PATH` (see below) to point to the version you want.
-
 ## Building
 
 The examples build as regular Raspberry Pi Pico SDK applications. You can build either from this root directory, or build from within the individual examples' directories.
 
 See [Getting Started With Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) in the SDK documentation for setting up a Raspberry Pi Pico SDK build environment. If you are already set up, then just make sure `PICO_SDK_PATH` is set in your environment or pass it via `-DPICO_SDK_PATH=xxx` on the Cmake command line.
+
+Set `FREERTOS_KERNEL_PATH` in your environment or on the CMake command line to point at a specific instance of the
+FreeRTOS Kernel.
 
 To build from the command line on unix, from this directory (or from the individual examples' directories), type:
 
@@ -22,14 +18,23 @@ make
 
 This will generate `.uf2` files for each example under the relevant build directories.
 
-You may set `FREERTOS_KERNEL_PATH` in your environment or on the CMake command line to point at a specific instance of the FreeRTOS Kernel, otherwise the version from `Source/` within this project is used.
+## Flashing
 
-## Demos
+1. Connect USB while **BOOTSEL** button is pressed on Pico. `RPI-RP2` should show up as USB Mass Storage device.
+2. Copy the generated `.uf2` file to `RPI-RP2`. Once the file transfer is complete Pico would restart automatically and
+   start running the program.
+3. Additionally, use `screen` (or any other terminal) to monitor serial output over USB. `dmesg | grep tty` to find TTY
+   device.
 
-### Standard
+### Serial Monitor example
 
-These are the standard _Minimal_ main_blink and main_full test demos.
+```bash
+$ dmesg | grep tty
+[    0.108413] printk: console [tty0] enabled
+[    0.653298] 00:06: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    0.655126] 0000:00:16.3: ttyS4 at I/O 0xf0e0 (irq = 19, base_baud = 115200) is a 16550A
+[ 5718.448836] cdc_acm 1-11:1.0: ttyACM0: USB ACM device
 
-### OnEitherCore
+$ screen /dev/ttyACM0
+```
 
-Two versions of the same demo of interaction with SDK code running on one core, and FreeRTOS tasks running on the other (and the use of SDK synchronization primitives to communicate between them). One version has FreeRTOS on core 0, the other has FreeRTOS on core 1.
