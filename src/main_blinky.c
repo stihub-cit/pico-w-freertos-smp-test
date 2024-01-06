@@ -16,7 +16,7 @@
 #define mainQUEUE_LENGTH (1)
 
 bool reserved_addr(uint8_t addr) {
-  return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
+    return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
 }
 
 void main_blinky(void);
@@ -28,78 +28,80 @@ static void prvQueueSendTask(void *pvParameters);
 static QueueHandle_t xQueue = NULL;
 
 void main_blinky(void) {
-  printf(" Starting main_blinky.\n");
+    printf(" Starting main_blinky.\n");
 
-  xQueue = xQueueCreate(mainQUEUE_LENGTH, sizeof(uint32_t));
+    xQueue = xQueueCreate(mainQUEUE_LENGTH, sizeof(uint32_t));
 
-  if (xQueue != NULL) {
-    xTaskCreate(prvQueueReceiveTask, "Rx", configMINIMAL_STACK_SIZE, NULL,
-                mainQUEUE_RECEIVE_TASK_PRIORITY, NULL);
+    if (xQueue != NULL) {
+        xTaskCreate(prvQueueReceiveTask, "Rx", configMINIMAL_STACK_SIZE, NULL,
+                    mainQUEUE_RECEIVE_TASK_PRIORITY, NULL);
 
-    xTaskCreate(prvQueueSendTask, "TX", configMINIMAL_STACK_SIZE, NULL,
-                mainQUEUE_SEND_TASK_PRIORITY, NULL);
+        xTaskCreate(prvQueueSendTask, "TX", configMINIMAL_STACK_SIZE, NULL,
+                    mainQUEUE_SEND_TASK_PRIORITY, NULL);
 
-    vTaskStartScheduler();
-  }
+        vTaskStartScheduler();
+    }
 
-  for (;;);
+    for (;;);
 }
 
 static void prvQueueSendTask(void *pvParameters) {
-  TickType_t xNextWakeTime;
-  const unsigned long ulValueToSend = 100UL;
+    TickType_t xNextWakeTime;
+    const unsigned long ulValueToSend = 100UL;
 
-  (void) pvParameters;
+    (void) pvParameters;
 
-  xNextWakeTime = xTaskGetTickCount();
+    xNextWakeTime = xTaskGetTickCount();
 
-  for (;;) {
-    vTaskDelayUntil(&xNextWakeTime, mainQUEUE_SEND_FREQUENCY_MS);
+    for (;;) {
+        vTaskDelayUntil(&xNextWakeTime, mainQUEUE_SEND_FREQUENCY_MS);
 
-    xQueueSend(xQueue, &ulValueToSend, 0U);
-  }
+        xQueueSend(xQueue, &ulValueToSend, 0U);
+    }
 }
 
 static void prvQueueReceiveTask(void *pvParameters) {
-  unsigned long ulReceivedValue;
+    unsigned long ulReceivedValue;
 
-  (void) pvParameters;
+    (void) pvParameters;
 
-  for (;;) {
-    const unsigned long ulExpectedValue = 100UL;
+    for (;;) {
+        const unsigned long ulExpectedValue = 100UL;
 
-    xQueueReceive(xQueue, &ulReceivedValue, portMAX_DELAY);
+        xQueueReceive(xQueue, &ulReceivedValue, portMAX_DELAY);
 
-    if (ulReceivedValue == ulExpectedValue) {
-      printf("\nI2C Bus Scan\n");
-      printf("   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
+        if (ulReceivedValue == ulExpectedValue) {
+            uint8_t buf[2];
+            uint8_t reg = 0x09 * 2;
+            uint16_t data = 0;
 
-      for (int addr = 0; addr < (1 << 7); ++addr) {
-        if (addr % 16 == 0) {
-          printf("%02x ", addr);
+            i2c_write_blocking(&i2c1_inst, 0x22, &reg, 1, false);
+            i2c_read_blocking(&i2c1_inst, 0x22, buf, 2, false);
+            data = buf[0] << 8 | buf[1];
+            float float_data = data;
+            float_data = float_data * (1.0023F + float_data * (
+                                           8.1488e-5F + float_data * (-9.3924e-9F + float_data * 6.0135e-13F)));
+
+
+            printf("%f, ", float_data);
+
+            reg = 0x0A * 2;
+            i2c_write_blocking(&i2c1_inst, 0x22, &reg, 1, false);
+            i2c_read_blocking(&i2c1_inst, 0x22, buf, 2, false);
+            data = buf[0] << 8 | buf[1];
+            float_data = (float) (-45) + ((data * 175.00) / 1024.00 / 64.00);
+            printf("%f, ", float_data);
+
+            reg = 0x0B * 2;
+            i2c_write_blocking(&i2c1_inst, 0x22, &reg, 1, false);
+            i2c_read_blocking(&i2c1_inst, 0x22, buf, 2, false);
+            data = buf[0] << 8 | buf[1];
+            float_data = (float) data * 100 / 65536;
+            printf("%f\n", float_data);
+
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN,
+                                !cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN));
+            ulReceivedValue = 0U;
         }
-
-        // Perform a 1-byte dummy read from the probe address. If a slave
-        // acknowledges this address, the function returns the number of bytes
-        // transferred. If the address byte is ignored, the function returns
-        // -1.
-
-        // Skip over any reserved addresses.
-        int ret = 0;
-        uint8_t rxdata = 0;
-        if (reserved_addr(addr)) {
-          ret = PICO_ERROR_GENERIC;
-        } else {
-          ret = i2c_read_blocking(((&i2c1_inst)), addr, &rxdata, 1, false);
-        }
-
-        printf(ret < 0 ? "." : "@");
-        printf(addr % 16 == 15 ? "\n" : "  ");
-      }
-      printf("Done.\n");
-      cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN,
-                          !cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN));
-      ulReceivedValue = 0U;
     }
-  }
 }
