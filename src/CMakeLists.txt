@@ -15,7 +15,6 @@ pico_sdk_init()
 add_executable(main_blinky_smp
         main.c
         main_blinky.c
-        btstack_config.h
 )
 
 target_compile_definitions(main_blinky_smp PRIVATE
