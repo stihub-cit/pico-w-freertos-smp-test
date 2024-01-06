@@ -15,10 +15,6 @@
 
 #define mainQUEUE_LENGTH (1)
 
-bool reserved_addr(uint8_t addr) {
-    return (addr & 0x78) == 0 || (addr & 0x78) == 0x78;
-}
-
 void main_blinky(void);
 
 static void prvQueueReceiveTask(void *pvParameters);
@@ -61,7 +57,7 @@ static void prvQueueSendTask(void *pvParameters) {
 }
 
 static void prvQueueReceiveTask(void *pvParameters) {
-    unsigned long ulReceivedValue;
+    unsigned long ulReceivedValue = 0;
 
     (void) pvParameters;
 
@@ -75,9 +71,10 @@ static void prvQueueReceiveTask(void *pvParameters) {
             uint8_t reg = 0x09 * 2;
             uint16_t data = 0;
 
-            i2c_write_blocking(&i2c1_inst, 0x22, &reg, 1, false);
-            i2c_read_blocking(&i2c1_inst, 0x22, buf, 2, false);
-            data = buf[0] << 8 | buf[1];
+            const uint8_t ENV_SENSOR_ADDR = 0x22;
+            i2c_write_blocking(&i2c1_inst, ENV_SENSOR_ADDR, &reg, 1, false);
+            i2c_read_blocking(&i2c1_inst, ENV_SENSOR_ADDR, buf, 2, false);
+            data = buf[0] << 8U | buf[1];
             float float_data = data;
             float_data = float_data * (1.0023F + float_data * (
                                            8.1488e-5F + float_data * (-9.3924e-9F + float_data * 6.0135e-13F)));
@@ -86,16 +83,16 @@ static void prvQueueReceiveTask(void *pvParameters) {
             printf("%f, ", float_data);
 
             reg = 0x0A * 2;
-            i2c_write_blocking(&i2c1_inst, 0x22, &reg, 1, false);
-            i2c_read_blocking(&i2c1_inst, 0x22, buf, 2, false);
-            data = buf[0] << 8 | buf[1];
-            float_data = (float) (-45) + ((data * 175.00) / 1024.00 / 64.00);
+            i2c_write_blocking(&i2c1_inst, ENV_SENSOR_ADDR, &reg, 1, false);
+            i2c_read_blocking(&i2c1_inst, ENV_SENSOR_ADDR, buf, 2, false);
+            data = buf[0] << 8U | buf[1];
+            float_data = (float) -45 + data * 175.00 / 1024.00 / 64.00;
             printf("%f, ", float_data);
 
             reg = 0x0B * 2;
-            i2c_write_blocking(&i2c1_inst, 0x22, &reg, 1, false);
-            i2c_read_blocking(&i2c1_inst, 0x22, buf, 2, false);
-            data = buf[0] << 8 | buf[1];
+            i2c_write_blocking(&i2c1_inst, ENV_SENSOR_ADDR, &reg, 1, false);
+            i2c_read_blocking(&i2c1_inst, ENV_SENSOR_ADDR, buf, 2, false);
+            data = buf[0] << 8U | buf[1];
             float_data = (float) data * 100 / 65536;
             printf("%f\n", float_data);
 
